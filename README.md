@@ -96,3 +96,9 @@ BitVector prioritizes memory density over access speed. Because dynamic bit-pack
 * **Sequential Memory Access:** ~0.299x (Updating) and ~1.132x (Retrieving) relative to `std::array`.
 
 *Note: Benchmarks were conducted with pre-allocated buffers. The primary bottleneck is `setData(...)` due to the read-modify-write cycle required for bit manipulation. If your application requires high-frequency data mutations over static data retrieval, evaluate whether the memory savings outweigh the CPU cost in your specific pipeline.*
+
+## License
+
+Copyright 2026 @LeszekDev
+
+Licensed under the Apache License, Version 2.0. See the bottom of BitVector.hpp for the full license text.
