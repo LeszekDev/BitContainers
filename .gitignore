@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+/.vs
+/Benchmark/x64
+/Test/x64
+/x64
+Benchmark/Benchmark.vcxproj.user
+Test/Test.vcxproj.user

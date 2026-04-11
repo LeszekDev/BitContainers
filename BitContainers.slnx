@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="BitVector.hpp" />
+  </Folder>
+  <Project Path="Benchmark/Benchmark.vcxproj" Id="350033b6-b8eb-420c-8f7e-044ac5384023" />
+  <Project Path="Test/Test.vcxproj" Id="904006fc-4715-49c0-9474-8b14cbd25d89" />
+</Solution>

@@ -1,0 +1,25 @@
+i7 9700k 8t 8c
+L1 64KB, L2 256KB, L3 12MB
+3.60GHz, 64GB RAM
+
+This test was executed in 5 sessions where each session consisted of
+32, 16, 8, 4, 2, 1 threads running the benchmark 32, 16, 8... times in parallel
+(meaning for example 32 tests running at the same time on multiple threads)
+
+Benchmark is a simple test for setting and getting data where BitVector is preallocated
+and compared against std::array where for example array uses uint8_t meanwhile BitVector
+operates on 6-Bit values. Each test in each session consisted of measuring times with
+595 different configurations of array vs BitVector data sizes and sizes of buffer.
+
+It also doesn't represent the main advantage of BitVector, which is an ability
+to operate on dynamic bit-width data.
+
+Below is the average data:
+
+runRandomBlockBenchmark (595 configurations): [setBlock, getBlock]
+On average Leszek::BitVector is [0.796,1.071] times faster than std::array in common chunk cases!
+On average Leszek::BitVector is [0.759,1.012] times faster than std::array in all tests!
+
+runSequentialBlockBenchmark (595 configurations): [setBlock, getBlock]
+On average Leszek::BitVector is [0.299,1.132] times faster than std::array in common chunk cases!
+On average Leszek::BitVector is [0.335,1.101] times faster than std::array in all tests!

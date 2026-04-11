@@ -1,0 +1,5 @@
+BitContainers
+Copyright 2026 @LeszekDev
+
+This product includes software developed by @LeszekDev.
+You can see it at https://github.com/LeszekDev/BitContainers
