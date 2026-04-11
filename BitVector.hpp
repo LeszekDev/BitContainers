@@ -25,14 +25,15 @@
  * ======================================================================================
  *  Benchmarks on i7 9700k 8t 8c, L1 64KB, L2 256KB, L3 12MB, 64GB DDR4 2666 MHz RAM:
  * 
- *  RandomMemoryAccess:     0.917x (Updating) and 1.073x (Retrieving) Speed of std::array
- *  SequentialMemoryAccess: 0.917x (Updating) and 1.073x (Retrieving) Speed of std::array
+ *  RandomMemoryAccess:     0.796x (Updating) and 1.071x (Retrieving) Speed of std::array
+ *  SequentialMemoryAccess: 0.299x (Updating) and 1.132x (Retrieving) Speed of std::array
  *  (Benchmarks had a preallocated buffers, so BitVector didn't do any reallocations)
  * 
  *  This means that Leszek::BitVector is pretty much always slower than std::array
- *  Especially the Updating (setData(...)) shows that its the main bottleneck.
- *  Thats why you should consider if an std::vector/std::array would be more viable
- *  option for where you do a lot of updating rather than retrieving.
+ *  when it comes to updating the data, with negligible performance improvements
+ *  when retrieving the data. Thats why you should consider if an std::vector or 
+ *  std::array would be more viable option for where you do a lot of updating
+ *  rather than retrieving.
  * ======================================================================================
 \*/
 
