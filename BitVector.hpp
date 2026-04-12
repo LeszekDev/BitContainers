@@ -2,9 +2,9 @@
  * ======================================================================================
  *  File: BitVector.hpp
  *  Author: @LeszekDev
- *  Version: 1.0.0 (Released at April 11, 2026)
+ *  Version: 1.0.1 (Released at April 12, 2026)
  *  Repository: https://github.com/LeszekDev/BitContainers
- *  Requirements: C++17
+ *  Requirements: C++17 (Recommended C++20/C++23)
  * ======================================================================================
  *  License Agreement can be found at the bottom of this file
  * ======================================================================================
@@ -77,8 +77,8 @@ namespace Leszek {
 		static uint64_t loadLE(const uint64_t* LESZEK_BITVECTOR_RESTRICT p);
 		static void storeLE(uint64_t* LESZEK_BITVECTOR_RESTRICT p, uint64_t v);
 
-		uint64_t getDataBlock(size_t index) const;
-		void setDataBlock(size_t index, uint64_t value);
+		uint64_t get_data_block(size_t index) const;
+		void set_data_block(size_t index, uint64_t value);
 
 	public:
 
@@ -91,23 +91,24 @@ namespace Leszek {
 		void clear();
 		void shrink_to_fit();
 
-		[[nodiscard]] uint64_t getData(size_t bitIndex, int bitWidth) const;
-		void setData(size_t bitIndex, int bitWidth, uint64_t value);
+		[[nodiscard]] uint64_t at(size_t bitIndex, int bitWidth) const;
+		void set(size_t bitIndex, int bitWidth, uint64_t value);
 
-		[[nodiscard]] bool getBit(size_t bitIndex) const;
-		void setBit(size_t bitIndex, bool value);
+		[[nodiscard]] bool bit_at(size_t bitIndex) const;
+		void set_bit(size_t bitIndex, bool value);
 
-		void pushData(int bitWidth, uint64_t value);
-		uint64_t popData(int bitWidth);
+		void push_back(int bitWidth, uint64_t value);
+		[[nodiscard]] uint64_t pop_back(int bitWidth);
 
 		// Returns size of buffer IN BITS (not bytes)
-		[[nodiscard]] size_t getBitSize() const;
+		[[nodiscard]] size_t size() const;
+
+		[[nodiscard]] bool empty() const;
 
 		// Returns minimum amount of bytes required to represent this vector
-		[[nodiscard]] size_t getMinimumRequiredBytes() const;
+		[[nodiscard]] size_t required_bytes() const;
 
-		std::vector<uint64_t>& getBuffer();
-		const std::vector<uint64_t>& getBuffer() const;
+		const std::vector<uint64_t>& get_buffer() const;
 
 	};
 
@@ -138,8 +139,7 @@ namespace Leszek {
 #if __cplusplus >= 202002L
 #include <bit>
 #define LESZEK_BITVECTOR_IS_LITTLE_ENDIAN (std::endian::native == std::endian::little)
-#else // __cplusplus >= 202002L ( C++ 20)
-#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #define LESZEK_BITVECTOR_IS_LITTLE_ENDIAN 0
 #elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #define LESZEK_BITVECTOR_IS_LITTLE_ENDIAN 1
@@ -148,7 +148,6 @@ namespace Leszek {
 #define LESZEK_BITVECTOR_IS_LITTLE_ENDIAN 1
 #else
 #error "Unknown architecture endianness"
-#endif
 #endif // __cplusplus >= 202002L ( C++ 20)
 #endif //LESZEK_BITVECTOR_ENDIANESS
 
@@ -194,13 +193,13 @@ namespace Leszek {
 			*p = byteswap64(v);
 	}
 
-	LESZEK_BITVECTOR_FORCEINLINE uint64_t BitVector::getDataBlock(size_t index) const {
+	LESZEK_BITVECTOR_FORCEINLINE uint64_t BitVector::get_data_block(size_t index) const {
 		if constexpr (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
 			return *(data.data() + index);
 		else
 			return byteswap64(*(data.data() + index));
 	}
-	LESZEK_BITVECTOR_FORCEINLINE void BitVector::setDataBlock(size_t index, uint64_t value) {
+	LESZEK_BITVECTOR_FORCEINLINE void BitVector::set_data_block(size_t index, uint64_t value) {
 		if constexpr (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
 			*(data.data() + index) = value;
 		else
@@ -227,6 +226,8 @@ namespace Leszek {
 		bitSize = 0;
 	}
 	void BitVector::shrink_to_fit() {
+		const size_t neededBlocks = (bitSize + 63) >> 6;
+		data.resize(neededBlocks);
 		data.shrink_to_fit();
 	}
 
@@ -239,11 +240,11 @@ namespace Leszek {
 		memcpy(this->data.data(), data, (bitsSize + 7) / 8);
 	}
 
-	[[nodiscard]] uint64_t BitVector::getData(size_t bitIndex, int bitWidth) const {
+	[[nodiscard]] uint64_t BitVector::at(size_t bitIndex, int bitWidth) const {
 		if (bitWidth == 0) return 0;
 
 		LESZEK_BITVECTOR_ASSERT(bitWidth >= 0 && bitWidth <= 64, "bitWidth outside of range <0,64>");
-		LESZEK_BITVECTOR_ASSERT(bitIndex >= 0 && bitIndex + bitWidth <= bitSize, "index out of bounds!");
+		LESZEK_BITVECTOR_ASSERT(bitIndex + bitWidth <= bitSize, "index out of bounds!");
 
 		const size_t block = bitIndex >> 6;
 		const size_t offset = bitIndex & 63;
@@ -260,11 +261,11 @@ namespace Leszek {
 
 		return static_cast<uint64_t>(value & bitmask);
 	}
-	void BitVector::setData(size_t bitIndex, int bitWidth, uint64_t value) {
+	void BitVector::set(size_t bitIndex, int bitWidth, uint64_t value) {
 		if (bitWidth == 0) return;
 
 		LESZEK_BITVECTOR_ASSERT(bitWidth >= 0 && bitWidth <= 64, "bitWidth outside of range <0,64>");
-		LESZEK_BITVECTOR_ASSERT(bitIndex >= 0 && bitIndex + bitWidth <= bitSize, "index out of bounds!");
+		LESZEK_BITVECTOR_ASSERT(bitIndex + bitWidth <= bitSize, "index out of bounds!");
 
 		const size_t block = bitIndex >> 6;
 		const size_t offset = bitIndex & 63;
@@ -288,19 +289,19 @@ namespace Leszek {
 		}
 	}
 
-	[[nodiscard]] bool BitVector::getBit(size_t bitIndex) const {
-		LESZEK_BITVECTOR_ASSERT(bitIndex >= 0 && bitIndex < bitSize, "index out of bounds!");
+	[[nodiscard]] bool BitVector::bit_at(size_t bitIndex) const {
+		LESZEK_BITVECTOR_ASSERT(bitIndex < bitSize, "index out of bounds!");
 		const uint64_t* LESZEK_BITVECTOR_RESTRICT ptr = data.data() + (bitIndex >> 6);
 		return static_cast<bool>((loadLE(ptr) >> (bitIndex & 63)) & 1ULL);
 	}
-	void BitVector::setBit(size_t bitIndex, bool value) {
-		LESZEK_BITVECTOR_ASSERT(bitIndex >= 0 && bitIndex < bitSize, "index out of bounds!");
+	void BitVector::set_bit(size_t bitIndex, bool value) {
+		LESZEK_BITVECTOR_ASSERT(bitIndex < bitSize, "index out of bounds!");
 		const int offset = static_cast<int>(bitIndex & 63);
 		uint64_t* LESZEK_BITVECTOR_RESTRICT ptr = data.data() + (bitIndex >> 6);
 		storeLE(ptr, (loadLE(ptr) & ~(1ULL << offset)) | (static_cast<uint64_t>(value) << offset));
 	}
 
-	void BitVector::pushData(int bitWidth, uint64_t value) {
+	void BitVector::push_back(int bitWidth, uint64_t value) {
 		if (bitWidth == 0) return;
 
 		LESZEK_BITVECTOR_ASSERT(bitWidth >= 0 && bitWidth <= 64, "bitWidth outside of range <0,64>");
@@ -313,37 +314,33 @@ namespace Leszek {
 			data.emplace_back(0);
 		}
 
-		setData(writeAt, bitWidth, value);
+		set(writeAt, bitWidth, value);
 	}
-	uint64_t BitVector::popData(int bitWidth) {
+	[[nodiscard]] uint64_t BitVector::pop_back(int bitWidth) {
 		if (bitWidth == 0) return 0;
 
 		LESZEK_BITVECTOR_ASSERT(bitWidth > 0 && bitWidth <= 64, "bitWidth outside of range <0,64>");
 		LESZEK_BITVECTOR_ASSERT(bitSize >= bitWidth, "not enough bits to pop!");
 
-		const uint64_t value = getData(bitSize - bitWidth, bitWidth);
+		const uint64_t value = at(bitSize - bitWidth, bitWidth);
 		bitSize -= static_cast<size_t>(bitWidth);
-
-		const size_t neededBlocks = (bitSize + 63) >> 6;
-		if (neededBlocks < data.size()) [[unlikely]] {
-			data.resize(neededBlocks);
-		}
 
 		return value;
 	}
 
-	[[nodiscard]] size_t BitVector::getBitSize() const {
+	[[nodiscard]] size_t BitVector::size() const {
 		return bitSize;
 	}
 
-	[[nodiscard]] size_t BitVector::getMinimumRequiredBytes() const {
+	[[nodiscard]] bool BitVector::empty() const {
+		return !bitSize;
+	}
+
+	[[nodiscard]] size_t BitVector::required_bytes() const {
 		return (bitSize + 7) / 8;
 	}
 
-	std::vector<uint64_t>& BitVector::getBuffer() {
-		return data;
-	}
-	const std::vector<uint64_t>& BitVector::getBuffer() const {
+	const std::vector<uint64_t>& BitVector::get_buffer() const {
 		return data;
 	}
 
