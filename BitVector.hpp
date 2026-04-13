@@ -2,9 +2,9 @@
  * ======================================================================================
  *  File: BitVector.hpp
  *  Author: @LeszekDev
- *  Version: 1.0.0 (Released at April 11, 2026)
+ *  Version: 1.0.2 (Released at April 13, 2026)
  *  Repository: https://github.com/LeszekDev/BitContainers
- *  Requirements: C++17
+ *  Requirements: C++11 (Recommended C++20/C++23)
  * ======================================================================================
  *  License Agreement can be found at the bottom of this file
  * ======================================================================================
@@ -89,24 +89,29 @@ namespace Leszek {
 		void reserve(size_t bitsReserved);
 
 		void clear();
-		void shrink_to_fit();
+		void shrinkToFit();
 
 		[[nodiscard]] uint64_t getData(size_t bitIndex, int bitWidth) const;
 		void setData(size_t bitIndex, int bitWidth, uint64_t value);
+
+		[[nodiscard]] uint64_t getOptionalData(size_t bitIndex, int bitWidth, uint64_t orElse = 0) const;
 
 		[[nodiscard]] bool getBit(size_t bitIndex) const;
 		void setBit(size_t bitIndex, bool value);
 
 		void pushData(int bitWidth, uint64_t value);
-		uint64_t popData(int bitWidth);
+		[[nodiscard]] uint64_t popData(int bitWidth);
+
+		void pushBit(bool bit);
+		[[nodiscard]] bool popBit();
 
 		// Returns size of buffer IN BITS (not bytes)
-		[[nodiscard]] size_t getBitSize() const;
+		[[nodiscard]] size_t getSize() const;
+		[[nodiscard]] bool isEmpty() const;
 
 		// Returns minimum amount of bytes required to represent this vector
-		[[nodiscard]] size_t getMinimumRequiredBytes() const;
+		[[nodiscard]] size_t getRequiredBytes() const;
 
-		std::vector<uint64_t>& getBuffer();
 		const std::vector<uint64_t>& getBuffer() const;
 
 	};
@@ -134,21 +139,46 @@ namespace Leszek {
 #endif
 #endif // LESZEK_BITVECTOR_FORCEINLINE
 
+#ifndef LESZEK_BITVECTOR_IF_CONSTEXPR
+#if __cplusplus >= 201703L
+#define LESZEK_BITVECTOR_IF_CONSTEXPR constexpr
+#else
+#define LESZEK_BITVECTOR_IF_CONSTEXPR
+#endif // __cplusplus >= 201703L
+#endif // LESZEK_BITVECTOR_FORCEINLINE
+
+#ifndef LESZEK_BITVECTOR_UNLIKELY
+#if __cplusplus >= 202002L
+#define LESZEK_BITVECTOR_UNLIKELY [[unlikely]]
+#else
+// Fallback for everything else (C++11/14/17)
+#define LESZEK_BITVECTOR_UNLIKELY
+#endif
+#endif
+
+#ifndef LESZEK_BITVECTOR_LIKELY
+#if __cplusplus >= 202002L
+#define LESZEK_BITVECTOR_LIKELY [[likely]]
+#else
+// Fallback for everything else (C++11/14/17)
+#define LESZEK_BITVECTOR_LIKELY
+#endif
+#endif
+
+
 #ifndef LESZEK_BITVECTOR_IS_LITTLE_ENDIAN
 #if __cplusplus >= 202002L
 #include <bit>
 #define LESZEK_BITVECTOR_IS_LITTLE_ENDIAN (std::endian::native == std::endian::little)
-#else // __cplusplus >= 202002L ( C++ 20)
-#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #define LESZEK_BITVECTOR_IS_LITTLE_ENDIAN 0
 #elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #define LESZEK_BITVECTOR_IS_LITTLE_ENDIAN 1
 #elif defined(__LITTLE_ENDIAN__) || defined(_M_IX86) || defined(_M_X64)
-	// _M_IX86 and _M_X64 are specific to MSVC (Windows)
+// ^^^ _M_IX86 and _M_X64 are specific to MSVC (Windows) ^^^
 #define LESZEK_BITVECTOR_IS_LITTLE_ENDIAN 1
 #else
 #error "Unknown architecture endianness"
-#endif
 #endif // __cplusplus >= 202002L ( C++ 20)
 #endif //LESZEK_BITVECTOR_ENDIANESS
 
@@ -159,7 +189,8 @@ namespace Leszek {
 
 namespace Leszek {
 
-	LESZEK_BITVECTOR_FORCEINLINE uint64_t BitVector::byteswap64(uint64_t val) {
+	LESZEK_BITVECTOR_FORCEINLINE
+	uint64_t BitVector::byteswap64(uint64_t val) {
 
 #if defined(__cpp_lib_byteswap) && __cpp_lib_byteswap >= 202110L
 		return std::byteswap(val);
@@ -181,32 +212,39 @@ namespace Leszek {
 
 	}
 
-	LESZEK_BITVECTOR_FORCEINLINE uint64_t BitVector::loadLE(const uint64_t* LESZEK_BITVECTOR_RESTRICT p) {
-		if constexpr (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
+	LESZEK_BITVECTOR_FORCEINLINE 
+	uint64_t BitVector::loadLE(const uint64_t* LESZEK_BITVECTOR_RESTRICT p) {
+		if LESZEK_BITVECTOR_IF_CONSTEXPR (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
 			return *p;
 		else
 			return byteswap64(*p);
 	}
-	LESZEK_BITVECTOR_FORCEINLINE void BitVector::storeLE(uint64_t* LESZEK_BITVECTOR_RESTRICT p, uint64_t v) {
-		if constexpr (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
+
+	LESZEK_BITVECTOR_FORCEINLINE 
+	void BitVector::storeLE(uint64_t* LESZEK_BITVECTOR_RESTRICT p, uint64_t v) {
+		if LESZEK_BITVECTOR_IF_CONSTEXPR (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
 			*p = v;
 		else
 			*p = byteswap64(v);
 	}
 
-	LESZEK_BITVECTOR_FORCEINLINE uint64_t BitVector::getDataBlock(size_t index) const {
-		if constexpr (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
+	LESZEK_BITVECTOR_FORCEINLINE
+	uint64_t BitVector::getDataBlock(size_t index) const {
+		if LESZEK_BITVECTOR_IF_CONSTEXPR (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
 			return *(data.data() + index);
 		else
 			return byteswap64(*(data.data() + index));
 	}
-	LESZEK_BITVECTOR_FORCEINLINE void BitVector::setDataBlock(size_t index, uint64_t value) {
-		if constexpr (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
+
+	LESZEK_BITVECTOR_FORCEINLINE
+	void BitVector::setDataBlock(size_t index, uint64_t value) {
+		if LESZEK_BITVECTOR_IF_CONSTEXPR (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
 			*(data.data() + index) = value;
 		else
 			*(data.data() + index) = byteswap64(value);
 	}
 
+	LESZEK_BITVECTOR_FORCEINLINE 
 	void BitVector::resize(size_t newBitsSize) {
 		if (newBitsSize == bitSize) return;
 		bitSize = newBitsSize;
@@ -216,34 +254,42 @@ namespace Leszek {
 			data.resize(requiredBlocks, 0);
 		}
 	}
+	LESZEK_BITVECTOR_FORCEINLINE
 	void BitVector::reserve(size_t bitsReserved) {
 		if (bitsReserved == 0) return;
 		size_t requiredBlocks = ((bitsReserved + 63) / 64);
 		data.reserve(requiredBlocks);
 	}
 
+	LESZEK_BITVECTOR_FORCEINLINE 
 	void BitVector::clear() {
 		data.clear();
 		bitSize = 0;
 	}
-	void BitVector::shrink_to_fit() {
+	LESZEK_BITVECTOR_FORCEINLINE 
+	void BitVector::shrinkToFit() {
+		const size_t neededBlocks = (bitSize + 63) >> 6;
+		data.resize(neededBlocks);
 		data.shrink_to_fit();
 	}
 
+	LESZEK_BITVECTOR_FORCEINLINE 
 	BitVector::BitVector(size_t size) {
 		resize(size);
 	}
 
+	LESZEK_BITVECTOR_FORCEINLINE 
 	BitVector::BitVector(uint8_t* data, size_t bitsSize) {
 		resize(bitsSize);
 		memcpy(this->data.data(), data, (bitsSize + 7) / 8);
 	}
 
-	[[nodiscard]] uint64_t BitVector::getData(size_t bitIndex, int bitWidth) const {
+	[[nodiscard]] LESZEK_BITVECTOR_FORCEINLINE
+	uint64_t BitVector::getData(size_t bitIndex, int bitWidth) const {
 		if (bitWidth == 0) return 0;
 
 		LESZEK_BITVECTOR_ASSERT(bitWidth >= 0 && bitWidth <= 64, "bitWidth outside of range <0,64>");
-		LESZEK_BITVECTOR_ASSERT(bitIndex >= 0 && bitIndex + bitWidth <= bitSize, "index out of bounds!");
+		LESZEK_BITVECTOR_ASSERT(bitIndex + bitWidth <= bitSize, "index out of bounds!");
 
 		const size_t block = bitIndex >> 6;
 		const size_t offset = bitIndex & 63;
@@ -260,14 +306,15 @@ namespace Leszek {
 
 		return static_cast<uint64_t>(value & bitmask);
 	}
+	LESZEK_BITVECTOR_FORCEINLINE 
 	void BitVector::setData(size_t bitIndex, int bitWidth, uint64_t value) {
 		if (bitWidth == 0) return;
 
 		LESZEK_BITVECTOR_ASSERT(bitWidth >= 0 && bitWidth <= 64, "bitWidth outside of range <0,64>");
-		LESZEK_BITVECTOR_ASSERT(bitIndex >= 0 && bitIndex + bitWidth <= bitSize, "index out of bounds!");
+		LESZEK_BITVECTOR_ASSERT(bitIndex + bitWidth <= bitSize, "index out of bounds!");
 
 		const size_t block = bitIndex >> 6;
-		const size_t offset = bitIndex & 63;
+		const int offset = bitIndex & 63;
 		uint64_t* LESZEK_BITVECTOR_RESTRICT ptr = data.data() + block;
 
 		if (offset == 0 && bitWidth == 64) {
@@ -282,24 +329,51 @@ namespace Leszek {
 		storeLE(ptr, (loadLE(ptr) & ~(bitmask << offset)) | (cleanValue << offset));
 
 		// If we crossed the boundary, update the second block
-		if (offset + bitWidth > 64) [[unlikely]] {
+		if (offset + bitWidth > 64) LESZEK_BITVECTOR_UNLIKELY {
 			const int bitsLeft = 64 - offset;
 			storeLE(ptr + 1, (loadLE(ptr + 1) & ~(bitmask >> bitsLeft)) | (cleanValue >> bitsLeft));
 		}
 	}
 
-	[[nodiscard]] bool BitVector::getBit(size_t bitIndex) const {
-		LESZEK_BITVECTOR_ASSERT(bitIndex >= 0 && bitIndex < bitSize, "index out of bounds!");
+
+	[[nodiscard]] LESZEK_BITVECTOR_FORCEINLINE
+	uint64_t BitVector::getOptionalData(size_t bitIndex, int bitWidth, uint64_t orElse) const {
+		if (bitWidth < 1 || bitWidth > 64 || bitIndex + bitWidth > bitSize) return orElse;
+		
+		// Exact copy from getData()
+		{
+			const size_t block = bitIndex >> 6;
+			const int offset = bitIndex & 63;
+			const uint64_t bitmask = ~0ULL >> (64 - bitWidth);
+			const uint64_t* LESZEK_BITVECTOR_RESTRICT ptr = data.data() + block;
+
+			// Grab the first block
+			uint64_t value = loadLE(ptr) >> offset;
+
+			// The perfectly predictable boundary stitch
+			if (offset + bitWidth > 64) {
+				value |= loadLE(ptr + 1) << (64 - offset);
+			}
+
+			return static_cast<uint64_t>(value & bitmask);
+		}
+	}
+
+	[[nodiscard]] LESZEK_BITVECTOR_FORCEINLINE
+	bool BitVector::getBit(size_t bitIndex) const {
+		LESZEK_BITVECTOR_ASSERT(bitIndex < bitSize, "index out of bounds!");
 		const uint64_t* LESZEK_BITVECTOR_RESTRICT ptr = data.data() + (bitIndex >> 6);
 		return static_cast<bool>((loadLE(ptr) >> (bitIndex & 63)) & 1ULL);
 	}
+	LESZEK_BITVECTOR_FORCEINLINE 
 	void BitVector::setBit(size_t bitIndex, bool value) {
-		LESZEK_BITVECTOR_ASSERT(bitIndex >= 0 && bitIndex < bitSize, "index out of bounds!");
+		LESZEK_BITVECTOR_ASSERT(bitIndex < bitSize, "index out of bounds!");
 		const int offset = static_cast<int>(bitIndex & 63);
 		uint64_t* LESZEK_BITVECTOR_RESTRICT ptr = data.data() + (bitIndex >> 6);
 		storeLE(ptr, (loadLE(ptr) & ~(1ULL << offset)) | (static_cast<uint64_t>(value) << offset));
 	}
 
+	LESZEK_BITVECTOR_FORCEINLINE 
 	void BitVector::pushData(int bitWidth, uint64_t value) {
 		if (bitWidth == 0) return;
 
@@ -308,41 +382,63 @@ namespace Leszek {
 		const size_t writeAt = bitSize;
 		bitSize += static_cast<size_t>(bitWidth);
 
-		if (((bitSize + 63) >> 6) > data.size()) [[unlikely]] {
+		if (((bitSize + 63) >> 6) > data.size()) LESZEK_BITVECTOR_UNLIKELY {
 			// At most one new block needed (bitWidth <= 64).
 			data.emplace_back(0);
 		}
 
 		setData(writeAt, bitWidth, value);
 	}
+	[[nodiscard]] LESZEK_BITVECTOR_FORCEINLINE
 	uint64_t BitVector::popData(int bitWidth) {
 		if (bitWidth == 0) return 0;
 
-		LESZEK_BITVECTOR_ASSERT(bitWidth > 0 && bitWidth <= 64, "bitWidth outside of range <0,64>");
-		LESZEK_BITVECTOR_ASSERT(bitSize >= bitWidth, "not enough bits to pop!");
+		LESZEK_BITVECTOR_ASSERT(bitWidth >= 0 && bitWidth <= 64, "bitWidth outside of range <0,64>");
+		LESZEK_BITVECTOR_ASSERT(bitSize >= static_cast<size_t>(bitWidth), "not enough bits to pop!");
 
 		const uint64_t value = getData(bitSize - bitWidth, bitWidth);
 		bitSize -= static_cast<size_t>(bitWidth);
 
-		const size_t neededBlocks = (bitSize + 63) >> 6;
-		if (neededBlocks < data.size()) [[unlikely]] {
-			data.resize(neededBlocks);
+		return value;
+	}
+
+	LESZEK_BITVECTOR_FORCEINLINE 
+	void BitVector::pushBit(bool bit) {
+		bitSize++;
+
+		if (((bitSize + 63) >> 6) > data.size()) LESZEK_BITVECTOR_UNLIKELY {
+			// At most one new block needed (bitWidth <= 64).
+			data.emplace_back(0);
 		}
+
+		setData(bitSize - 1, 1, bit);
+	}
+	[[nodiscard]] LESZEK_BITVECTOR_FORCEINLINE
+	bool BitVector::popBit() {
+		LESZEK_BITVECTOR_ASSERT(bitSize, "vector is empty!");
+
+		bool value = getBit(bitSize - 1);
+		bitSize--;
 
 		return value;
 	}
 
-	[[nodiscard]] size_t BitVector::getBitSize() const {
+	[[nodiscard]] LESZEK_BITVECTOR_FORCEINLINE 
+	size_t BitVector::getSize() const {
 		return bitSize;
 	}
 
-	[[nodiscard]] size_t BitVector::getMinimumRequiredBytes() const {
+	[[nodiscard]] LESZEK_BITVECTOR_FORCEINLINE
+	bool BitVector::isEmpty() const {
+		return bitSize == 0;
+	}
+
+	[[nodiscard]] LESZEK_BITVECTOR_FORCEINLINE
+	size_t BitVector::getRequiredBytes() const {
 		return (bitSize + 7) / 8;
 	}
 
-	std::vector<uint64_t>& BitVector::getBuffer() {
-		return data;
-	}
+	LESZEK_BITVECTOR_FORCEINLINE 
 	const std::vector<uint64_t>& BitVector::getBuffer() const {
 		return data;
 	}

@@ -12,10 +12,10 @@
 UnitTestCollection getFullTestCollection() {
 	UnitTestCollection tests({
 		UnitTest("Initialization", []() { Leszek::BitVector bv; }),
-		UnitTest("Empty Vector getBitSize() == 0", []() { Leszek::BitVector bv; return bv.getBitSize() == 0; }),
-		UnitTest("Initialization with Size", []() { Leszek::BitVector bv(162); return bv.getBitSize() == 162; }),
+		UnitTest("Empty Vector getSize() == 0", []() { Leszek::BitVector bv; return bv.getSize() == 0; }),
+		UnitTest("Initialization with Size", []() { Leszek::BitVector bv(162); return bv.getSize() == 162; }),
 		UnitTest("resize() Test", []() { Leszek::BitVector bv; bv.resize(100); }),
-		UnitTest("getBitSize() Test", []() { Leszek::BitVector bv; bv.resize(100); return bv.getBitSize() == 100; }),
+		UnitTest("getSize() Test", []() { Leszek::BitVector bv; bv.resize(100); return bv.getSize() == 100; }),
 		UnitTest("Underlying Vector Size Test", []() {
 			Leszek::BitVector bv; bv.resize(100);
 			// 100 bits would require at least 2 uint64_t's
@@ -24,7 +24,7 @@ UnitTestCollection getFullTestCollection() {
 		UnitTest("clear() Test", []() {
 			Leszek::BitVector bv; bv.resize(100);
 			bv.clear();
-			return bv.getBitSize() == 0 && bv.getBuffer().size() == 0;
+			return bv.getSize() == 0 && bv.getBuffer().size() == 0;
 		}),
 		UnitTest("Set and Get Test (Single 64-Bit Block)", []() {
 			Leszek::BitVector bv(64);
@@ -73,25 +73,25 @@ UnitTestCollection getFullTestCollection() {
 			Leszek::BitVector bv;
 
 			bv.pushData(10, 0x3FF); // Push 10 bits
-			if (bv.getBitSize() != 10) return false;
+			if (bv.getSize() != 10) return false;
 
 			bv.pushData(60, 0x123456789ABCDEF); // Push 60 bits (causes boundary cross)
-			if (bv.getBitSize() != 70) return false;
+			if (bv.getSize() != 70) return false;
 
 			bv.pushData(3, 0x5); // Push 3 bits
-			if (bv.getBitSize() != 73) return false;
+			if (bv.getSize() != 73) return false;
 
 			// Pop in reverse order to verify LIFO consistency
 			if (bv.popData(3) != 0x5) return false;
-			if (bv.getBitSize() != 70) return false;
+			if (bv.getSize() != 70) return false;
 
 			// We only pushed 60 bits, so we need to mask the literal to compare accurately
 			uint64_t mask60 = (1ULL << 60) - 1;
 			if (bv.popData(60) != (0x123456789ABCDEF & mask60)) return false;
-			if (bv.getBitSize() != 10) return false;
+			if (bv.getSize() != 10) return false;
 
 			if (bv.popData(10) != 0x3FF) return false;
-			if (bv.getBitSize() != 0) return false;
+			if (bv.getSize() != 0) return false;
 
 			return true;
 		}),
@@ -103,12 +103,12 @@ UnitTestCollection getFullTestCollection() {
 		UnitTest("Zero Width Test #2", []() {
 			Leszek::BitVector bv;
 			bv.setData(10, 0, 0xFF);
-			return bv.getBitSize() == 0;
+			return bv.getSize() == 0;
 		}),
 		UnitTest("Zero Width Test #3", []() {
 			Leszek::BitVector bv(127);
 			bv.setData(10, 0, 0xFF);
-			return bv.getBitSize() == 127;
+			return bv.getSize() == 127;
 		}),
 		UnitTest("Zero Width Test #4", []() {
 			Leszek::BitVector bv;
@@ -118,12 +118,12 @@ UnitTestCollection getFullTestCollection() {
 		UnitTest("Zero Width Test #5", []() {
 			Leszek::BitVector bv;
 			bv.pushData(0, 0xFF);
-			return bv.getBitSize() == 0;
+			return bv.getSize() == 0;
 		}),
 		UnitTest("Zero Width Test #6", []() {
 			Leszek::BitVector bv(127);
 			bv.pushData(0, 0xFF);
-			return bv.getBitSize() == 127;
+			return bv.getSize() == 127;
 		}),
 		UnitTest("Zero Width Test #7", []() {
 			Leszek::BitVector bv(127);
@@ -132,7 +132,7 @@ UnitTestCollection getFullTestCollection() {
 		UnitTest("Zero Width Test #8", []() {
 			Leszek::BitVector bv(127);
 			bv.popData(0);
-			return bv.getBitSize() == 127;
+			return bv.getSize() == 127;
 		}),
 		UnitTest("Value Masking Test", []() {
 			Leszek::BitVector bv(8);

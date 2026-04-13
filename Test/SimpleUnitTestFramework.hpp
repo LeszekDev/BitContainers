@@ -71,6 +71,13 @@ public:
 
 };
 
+#if __cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
+#else
+// Helper to get result type in C++14 (since std::invoke_result is C++17)
+template <typename F, typename... Args>
+using result_of_t = typename std::result_of<F(Args...)>::type;
+#endif
+
 class UnitTest {
 private:
 
@@ -109,6 +116,7 @@ public:
 
 	UnitTest() = delete;
 
+#if __cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
 	template <typename Func>
 	UnitTest(const std::string& _name, Func _test, UnitTestCollection _childTests = { {} }) : name(_name), childTests(_childTests) {
 		if constexpr (std::is_same_v<std::invoke_result_t<Func>, bool>) {
@@ -118,7 +126,36 @@ public:
 			setTest(std::function<bool()>([_test]() { _test(); return true; }));
 		}
 	}
+#else
+	// Overload for functions returning bool
+	template <typename Func,
+		typename std::enable_if<
+		std::is_same<result_of_t<Func>, bool>::value,
+		int>::type = 0>
+	UnitTest(const std::string& _name, Func _test, UnitTestCollection _childTests = { {} })
+		: name(_name), childTests(_childTests)
+	{
+		setTest(std::function<bool()>(_test));
+	}
+
+	// Overload for functions returning void (or anything else)
+	template <typename Func,
+		typename std::enable_if<
+		!std::is_same<result_of_t<Func>, bool>::value,
+		int>::type = 0>
+	UnitTest(const std::string& _name, Func _test, UnitTestCollection _childTests = { {} })
+		: name(_name), childTests(_childTests)
+	{
+		setTest(std::function<bool()>([_test]() {
+			_test();
+			return true;
+			}));
+	}
+#endif
+
 };
+
+
 
 void UnitTestCollection::runTests(bool expectingSuccess, UnitTestStats& stats, int nested) {
 

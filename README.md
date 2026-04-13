@@ -2,10 +2,12 @@
 
 # BitVector
 
-**Version:** 1.0.0  
+**Version:** 1.0.2  
 **Author:** @LeszekDev  
-**Requires:** C++17 (Optimizes further with C++20/C++23)  
 **License:** Apache 2.0  
+**Requires:** C++11 (Recommended C++20/C++23)  
+*(Note: Even though it technically works with C++11, it's not officially supported)*
+
 
 BitVector is a lightweight, single-header C++ library providing a highly optimized container for bit-packed data. Designed with a familiar `std::vector`-style interface, BitVector limits operations to a maximum width of 64 bits (`uint64_t`) per operation to minimize the CPU overhead traditionally associated with dynamic-width bit packing. 
 
@@ -16,12 +18,11 @@ The primary architectural goal of BitVector is **spatial efficiency**. It is int
 * **Single-Header Design:** Easy integration into any build system.
 * **Deterministic Endianness:** Memory layout is strictly enforced as Little-Endian. The library automatically utilizes `std::byteswap` (C++23), `std::endian` (C++20), compiler intrinsics, or manual bit-shifting to ensure consistent data serialization across different architectures.
 * **Boundary Stitching:** Safely reads and writes bit sequences that cross the internal 64-bit block boundaries.
-* **Familiar API:** Implements standard container semantics including `reserve`, `resize`, `clear`, and `shrink_to_fit`.
 * **Direct Buffer Access:** Exposes the underlying `std::vector<uint64_t>` for rapid bulk operations, serialization, or network transmission.
 
 ## Ideal Use Cases
 
-* **Network Protocol Serialization:** Packing custom-width game state data (e.g., 7-bit health, 11-bit rotation) before transmitting over UDP.
+* **Network Protocol Serialization:** Packing custom-width game state data (e.g., 7-bit health, 11-bit rotation) before transmitting over TCP/UDP.
 * **Memory-Constrained Environments:** Storing massive arrays of tightly packed boolean or low-range integer states.
 * **Disk Compression:** Pre-packing data structures to minimize I/O overhead.
 
@@ -59,11 +60,11 @@ int main() {
 
     // Access the raw memory buffer for serialization
     const std::vector<uint64_t>& rawBuffer = bitVec.getBuffer();
-    size_t totalBitsUsed = bitVec.getBitSize();
+    size_t totalBitsUsed = bitVec.getSize();
 
     // Send over network
     uint8_t* data = reinterpret_cast<uint8_t*>(rawBuffer.data());
-    size_t dataSize = bitVec.getMinimumRequiredBytes(); // (bitSize + 7 / 8)
+    size_t dataSize = bitVec.getRequiredBytes(); // (bitSize + 7 / 8)
 
     connection.sendData(data, dataSize);
 
