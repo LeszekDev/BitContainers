@@ -2,9 +2,9 @@
 
 # BitVector
 
-**Version:** 1.0.1  
+**Version:** 1.0.0  
 **Author:** @LeszekDev  
-**Requires:** C++17 (Recommended C++20/C++23)  
+**Requires:** C++17 (Optimizes further with C++20/C++23)  
 **License:** Apache 2.0  
 
 BitVector is a lightweight, single-header C++ library providing a highly optimized container for bit-packed data. Designed with a familiar `std::vector`-style interface, BitVector limits operations to a maximum width of 64 bits (`uint64_t`) per operation to minimize the CPU overhead traditionally associated with dynamic-width bit packing. 
@@ -16,12 +16,12 @@ The primary architectural goal of BitVector is **spatial efficiency**. It is int
 * **Single-Header Design:** Easy integration into any build system.
 * **Deterministic Endianness:** Memory layout is strictly enforced as Little-Endian. The library automatically utilizes `std::byteswap` (C++23), `std::endian` (C++20), compiler intrinsics, or manual bit-shifting to ensure consistent data serialization across different architectures.
 * **Boundary Stitching:** Safely reads and writes bit sequences that cross the internal 64-bit block boundaries.
-* **Familiar API:** Implements standard container semantics including `reserve`, `resize`, `clear`, `shrink_to_fit`, `at`, `push_back`, `pop_back`, `size` and other, so it should be relatively simple to replace current `std::vector` implementation with `Leszek::BitVector` one
+* **Familiar API:** Implements standard container semantics including `reserve`, `resize`, `clear`, and `shrink_to_fit`.
 * **Direct Buffer Access:** Exposes the underlying `std::vector<uint64_t>` for rapid bulk operations, serialization, or network transmission.
 
 ## Ideal Use Cases
 
-* **Network Protocol Serialization:** Packing custom-width game state data (e.g., 7-bit health, 11-bit rotation) before transmitting over TCP/UDP.
+* **Network Protocol Serialization:** Packing custom-width game state data (e.g., 7-bit health, 11-bit rotation) before transmitting over UDP.
 * **Memory-Constrained Environments:** Storing massive arrays of tightly packed boolean or low-range integer states.
 * **Disk Compression:** Pre-packing data structures to minimize I/O overhead.
 
@@ -50,20 +50,20 @@ int main() {
     bitVec.reserve(128);
 
     // Push data of variable bit-widths
-    bitVec.push_back(7, 100);       // Push 7 bits
-    bitVec.push_back(13, 4095);     // Push 13 bits
-    bitVec.push_back(1, 1);         // Push 1 bit (boolean flag)
+    bitVec.pushData(7, 100);       // Push 7 bits
+    bitVec.pushData(13, 4095);     // Push 13 bits
+    bitVec.pushData(1, 1);         // Push 1 bit (boolean flag)
 
     // Update existing data in-place
-    bitVec.set(7, 13, 2048); 
+    bitVec.setData(7, 13, 2048); 
 
     // Access the raw memory buffer for serialization
-    const std::vector<uint64_t>& rawBuffer = bitVec.get_buffer();
-    size_t totalBitsUsed = bitVec.size();
+    const std::vector<uint64_t>& rawBuffer = bitVec.getBuffer();
+    size_t totalBitsUsed = bitVec.getBitSize();
 
     // Send over network
     uint8_t* data = reinterpret_cast<uint8_t*>(rawBuffer.data());
-    size_t dataSize = bitVec.required_bytes(); // (bitSize + 7 / 8)
+    size_t dataSize = bitVec.getMinimumRequiredBytes(); // (bitSize + 7 / 8)
 
     connection.sendData(data, dataSize);
 
@@ -78,9 +78,9 @@ int main() {
     Leszek::BitVector bitVec(data, dataSize * 8);
 
     // Reconstruct the data
-    uint64_t health = bitVec.at(0, 7);
-    uint64_t shield = bitVec.at(7, 13);
-    bool isAlive    = bitVec.bit_at(20);
+    uint64_t health = bitVec.getData(0, 7);
+    uint64_t shield = bitVec.getData(7, 13);
+    bool isAlive    = bitVec.getBit(20);
 
     return 0;
 }

@@ -37,10 +37,10 @@ namespace MinecraftChunk {
 		}
 
 		inline void setBlock(size_t index, uint64_t block) {
-			data.set(index * BITS_PER_BLOCK, BITS_PER_BLOCK, block);
+			data.setData(index * BITS_PER_BLOCK, BITS_PER_BLOCK, block);
 		}
 		uint64_t getBlock(size_t index) {
-			return data.at(index * BITS_PER_BLOCK, BITS_PER_BLOCK);
+			return data.getData(index * BITS_PER_BLOCK, BITS_PER_BLOCK);
 		}
 
 	};
