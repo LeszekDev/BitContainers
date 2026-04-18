@@ -2,7 +2,7 @@
  * ======================================================================================
  *  File: BitVector.hpp
  *  Author: @LeszekDev
- *  Version: 1.0.2 (Released at April 13, 2026)
+ *  Version: 1.0.3 (Released at April 19, 2026)
  *  Repository: https://github.com/LeszekDev/BitContainers
  *  Requirements: C++11 (Recommended C++20/C++23)
  * ======================================================================================
@@ -12,7 +12,14 @@
  *  To set it up you should create a BitVector.cpp (or BitContainers.cpp containing
  *  implementation for every file), do #define LESZEK_BITVECTOR_IMPLEMENTATION and
  *  after the define, you should include the library with #include "BitVector.hpp"
- *  
+ * 
+ *  If you have one big precompiled header do something like this:
+ *    #define LESZEK_BITVECTOR_IMPLEMENTATION
+ *    #define LESZEK_BITVECTOR_USE_FORCEINLINE
+ *    #include "BitVector.hpp"
+ *  Then everything will be forcefully inlined (if supported) 
+ *  giving you extra bit of performance.
+ * 
  *  This is a class similar to std::vector but with a one change - it operates
  *  on bits instead of fixed types and limits user to setting/getting only up
  *  to 64-bit data in the form of uint64_t. That is done for the performance
@@ -129,6 +136,7 @@ namespace Leszek {
 #define LESZEK_BITVECTOR_ASSERT(X, REASON) assert(X && REASON)
 #endif // LESZEK_BITVECTOR_ASSERT
 
+#ifdef LESZEK_BITVECTOR_USE_FORCEINLINE
 #ifndef LESZEK_BITVECTOR_FORCEINLINE
 #if defined(_MSC_VER)
 #define LESZEK_BITVECTOR_FORCEINLINE __forceinline
@@ -138,6 +146,9 @@ namespace Leszek {
 #define LESZEK_BITVECTOR_FORCEINLINE inline
 #endif
 #endif // LESZEK_BITVECTOR_FORCEINLINE
+#else
+#define LESZEK_BITVECTOR_FORCEINLINE
+#endif // LESZEK_BITVECTOR_USE_FORCEINLINE
 
 #ifndef LESZEK_BITVECTOR_IF_CONSTEXPR
 #if __cplusplus >= 201703L
