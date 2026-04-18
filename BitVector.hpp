@@ -2,7 +2,7 @@
  * ======================================================================================
  *  File: BitVector.hpp
  *  Author: @LeszekDev
- *  Version: 1.0.3 (Released at April 19, 2026)
+ *  Version: 1.0.4 (Released at April 19, 2026)
  *  Repository: https://github.com/LeszekDev/BitContainers
  *  Requirements: C++11 (Recommended C++20/C++23)
  * ======================================================================================
@@ -134,21 +134,25 @@ namespace Leszek {
 #ifndef LESZEK_BITVECTOR_ASSERT
 #include <cassert>
 #define LESZEK_BITVECTOR_ASSERT(X, REASON) assert(X && REASON)
-#endif // LESZEK_BITVECTOR_ASSERT
+#endif // !LESZEK_BITVECTOR_ASSERT
 
-#ifdef LESZEK_BITVECTOR_USE_FORCEINLINE
-#ifndef LESZEK_BITVECTOR_FORCEINLINE
+#ifndef LESZEK_BITVECTOR_ALWAYS_FORCEINLINE
 #if defined(_MSC_VER)
-#define LESZEK_BITVECTOR_FORCEINLINE __forceinline
+#define LESZEK_BITVECTOR_ALWAYS_FORCEINLINE __forceinline
 #elif defined(__GNUC__) || defined(__clang__)
-#define LESZEK_BITVECTOR_FORCEINLINE [[gnu::always_inline]] inline
+#define LESZEK_BITVECTOR_ALWAYS_FORCEINLINE [[gnu::always_inline]] inline
 #else
-#define LESZEK_BITVECTOR_FORCEINLINE inline
+#define LESZEK_BITVECTOR_ALWAYS_FORCEINLINE inline
 #endif
-#endif // LESZEK_BITVECTOR_FORCEINLINE
+#endif // !LESZEK_BITVECTOR_ALWAYS_FORCEINLINE
+
+#ifndef LESZEK_BITVECTOR_FORCEINLINE
+#ifdef LESZEK_BITVECTOR_USE_FORCEINLINE
+#define LESZEK_BITVECTOR_FORCEINLINE LESZEK_BITVECTOR_ALWAYS_FORCEINLINE
 #else
 #define LESZEK_BITVECTOR_FORCEINLINE
 #endif // LESZEK_BITVECTOR_USE_FORCEINLINE
+#endif // !LESZEK_BITVECTOR_FORCEINLINE
 
 #ifndef LESZEK_BITVECTOR_IF_CONSTEXPR
 #if __cplusplus >= 201703L
@@ -156,7 +160,7 @@ namespace Leszek {
 #else
 #define LESZEK_BITVECTOR_IF_CONSTEXPR
 #endif // __cplusplus >= 201703L
-#endif // LESZEK_BITVECTOR_FORCEINLINE
+#endif // !LESZEK_BITVECTOR_FORCEINLINE
 
 #ifndef LESZEK_BITVECTOR_UNLIKELY
 #if __cplusplus >= 202002L
@@ -165,7 +169,7 @@ namespace Leszek {
 // Fallback for everything else (C++11/14/17)
 #define LESZEK_BITVECTOR_UNLIKELY
 #endif
-#endif
+#endif // !LESZEK_BITVECTOR_UNLIKELY
 
 #ifndef LESZEK_BITVECTOR_LIKELY
 #if __cplusplus >= 202002L
@@ -174,7 +178,7 @@ namespace Leszek {
 // Fallback for everything else (C++11/14/17)
 #define LESZEK_BITVECTOR_LIKELY
 #endif
-#endif
+#endif // !LESZEK_BITVECTOR_LIKELY
 
 
 #ifndef LESZEK_BITVECTOR_IS_LITTLE_ENDIAN
@@ -191,7 +195,7 @@ namespace Leszek {
 #else
 #error "Unknown architecture endianness"
 #endif // __cplusplus >= 202002L ( C++ 20)
-#endif //LESZEK_BITVECTOR_ENDIANESS
+#endif // !LESZEK_BITVECTOR_ENDIANESS
 
 // This is for making byteswap64() an "alias" for std::byteswap(val)
 #if defined(__cpp_lib_byteswap) && __cpp_lib_byteswap >= 202110L
@@ -200,7 +204,7 @@ namespace Leszek {
 
 namespace Leszek {
 
-	LESZEK_BITVECTOR_FORCEINLINE
+	LESZEK_BITVECTOR_ALWAYS_FORCEINLINE
 	uint64_t BitVector::byteswap64(uint64_t val) {
 
 #if defined(__cpp_lib_byteswap) && __cpp_lib_byteswap >= 202110L
@@ -223,7 +227,7 @@ namespace Leszek {
 
 	}
 
-	LESZEK_BITVECTOR_FORCEINLINE 
+	LESZEK_BITVECTOR_ALWAYS_FORCEINLINE
 	uint64_t BitVector::loadLE(const uint64_t* LESZEK_BITVECTOR_RESTRICT p) {
 		if LESZEK_BITVECTOR_IF_CONSTEXPR (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
 			return *p;
@@ -231,7 +235,7 @@ namespace Leszek {
 			return byteswap64(*p);
 	}
 
-	LESZEK_BITVECTOR_FORCEINLINE 
+	LESZEK_BITVECTOR_ALWAYS_FORCEINLINE
 	void BitVector::storeLE(uint64_t* LESZEK_BITVECTOR_RESTRICT p, uint64_t v) {
 		if LESZEK_BITVECTOR_IF_CONSTEXPR (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
 			*p = v;
@@ -239,7 +243,7 @@ namespace Leszek {
 			*p = byteswap64(v);
 	}
 
-	LESZEK_BITVECTOR_FORCEINLINE
+	LESZEK_BITVECTOR_ALWAYS_FORCEINLINE
 	uint64_t BitVector::getDataBlock(size_t index) const {
 		if LESZEK_BITVECTOR_IF_CONSTEXPR (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
 			return *(data.data() + index);
@@ -247,7 +251,7 @@ namespace Leszek {
 			return byteswap64(*(data.data() + index));
 	}
 
-	LESZEK_BITVECTOR_FORCEINLINE
+	LESZEK_BITVECTOR_ALWAYS_FORCEINLINE
 	void BitVector::setDataBlock(size_t index, uint64_t value) {
 		if LESZEK_BITVECTOR_IF_CONSTEXPR (LESZEK_BITVECTOR_IS_LITTLE_ENDIAN)
 			*(data.data() + index) = value;

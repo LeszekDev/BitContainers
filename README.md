@@ -2,7 +2,7 @@
 
 # BitVector
 
-**Version:** 1.0.3  
+**Version:** 1.0.4  
 **Author:** @LeszekDev  
 **License:** Apache 2.0  
 **Requires:** C++11 (Recommended C++20/C++23)  
